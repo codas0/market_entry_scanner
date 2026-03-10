@@ -121,4 +121,4 @@ open http://localhost:8080
 
 ## Disclaimer
 
-This tool is for informational purposes only and does not constitute financial advice. All signals are generated mechanically from price data and do not account for fundamental developments, earnings surprises, or macro shifts not reflected in price.
+This tool is for informational purposes only and does not constitute financial advice. All signals are generated mechanically from price data and do not account for fundamental developments, earnings surprises, or macro shifts or trends not reflected in price.
