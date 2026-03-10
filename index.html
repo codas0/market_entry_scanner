@@ -1,0 +1,1837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Market Entry Scanner — Geopolitical Regime</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #080c14;
+    --bg2: #0d1220;
+    --bg3: #121828;
+    --border: #1e2a3a;
+    --gold: #c8a84b;
+    --gold2: #e8c96d;
+    --cream: #ddd5c0;
+    --dim: #7a8299;
+    --red: #e05c5c;
+    --green: #4caf82;
+    --blue: #4a90d9;
+    --purple: #9b72cf;
+    --orange: #e08c3a;
+
+    --ai-color: #4a90d9;
+    --tech-color: #4caf82;
+    --def-color: #e08c3a;
+    --lux-color: #9b72cf;
+    --bank-color: #c8a84b;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--cream);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* scanlines effect */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* ── Header ── */
+  .header {
+    border-bottom: 1px solid var(--border);
+    padding: 18px 28px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: linear-gradient(180deg, #0d1220 0%, transparent 100%);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(8px);
+  }
+
+  .header-left { flex: 1; }
+
+  .header-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--gold2);
+    letter-spacing: 0.02em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .header-title .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--red);
+    animation: blink 1.4s ease infinite;
+  }
+
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+  .header-sub {
+    color: var(--dim);
+    font-size: 10px;
+    margin-top: 3px;
+    letter-spacing: 0.05em;
+  }
+
+  .api-zone {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .api-input {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--cream);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    padding: 7px 12px;
+    width: 240px;
+    outline: none;
+    transition: border-color 0.2s;
+    letter-spacing: 0.05em;
+  }
+  .api-input:focus { border-color: var(--gold); }
+  .api-input::placeholder { color: var(--dim); }
+
+  .btn {
+    background: var(--gold);
+    color: var(--bg);
+    border: none;
+    padding: 7px 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.08em;
+    transition: background 0.2s, transform 0.1s;
+  }
+  .btn:hover { background: var(--gold2); }
+  .btn:active { transform: scale(0.97); }
+  .btn:disabled { background: var(--dim); cursor: not-allowed; }
+
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--dim);
+    transition: background 0.3s;
+  }
+  .status-dot.loading { background: var(--gold); animation: blink 0.7s infinite; }
+  .status-dot.ok { background: var(--green); }
+  .status-dot.err { background: var(--red); }
+
+  /* ── Regime Banner ── */
+  .regime-banner {
+    background: linear-gradient(90deg, rgba(224,92,92,0.12) 0%, rgba(224,92,92,0.04) 100%);
+    border-bottom: 1px solid rgba(224,92,92,0.3);
+    padding: 8px 28px;
+    display: flex;
+    gap: 28px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .regime-tag {
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border: 1px solid;
+    font-weight: 600;
+  }
+  .regime-tag.risk-off { color: var(--red); border-color: var(--red); }
+  .regime-tag.geo { color: var(--orange); border-color: var(--orange); }
+  .regime-tag.rates { color: var(--purple); border-color: var(--purple); }
+  .regime-tag.oil { color: var(--gold); border-color: var(--gold); }
+
+  .regime-note { color: var(--dim); font-size: 10px; }
+
+  /* ── Tabs ── */
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    padding: 0 28px;
+    gap: 0;
+    overflow-x: auto;
+  }
+
+  .tab {
+    padding: 12px 20px;
+    cursor: pointer;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--dim);
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+  }
+  .tab:hover { color: var(--cream); }
+  .tab.active { color: var(--cream); }
+  .tab[data-bucket="ai"].active { border-bottom-color: var(--ai-color); }
+  .tab[data-bucket="tech"].active { border-bottom-color: var(--tech-color); }
+  .tab[data-bucket="def"].active { border-bottom-color: var(--def-color); }
+  .tab[data-bucket="lux"].active { border-bottom-color: var(--lux-color); }
+  .tab[data-bucket="bank"].active { border-bottom-color: var(--bank-color); }
+
+  .tab-icon { font-size: 13px; }
+
+  /* ── Content Panels ── */
+  .panels { padding: 20px 28px; }
+
+  .panel { display: none; }
+  .panel.active { display: block; animation: fadeUp 0.3s ease; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Bucket Header ── */
+  .bucket-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .bucket-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 700;
+  }
+  .bucket-title.ai { color: var(--ai-color); }
+  .bucket-title.tech { color: var(--tech-color); }
+  .bucket-title.def { color: var(--def-color); }
+  .bucket-title.lux { color: var(--lux-color); }
+  .bucket-title.bank { color: var(--bank-color); }
+
+  .bucket-sub { color: var(--dim); font-size: 10px; margin-top: 4px; line-height: 1.6; max-width: 600px; }
+
+  .bucket-thesis {
+    background: var(--bg2);
+    border-left: 3px solid;
+    padding: 10px 14px;
+    font-size: 10px;
+    line-height: 1.7;
+    color: var(--dim);
+    max-width: 380px;
+    flex-shrink: 0;
+  }
+  .bucket-thesis.ai { border-color: var(--ai-color); }
+  .bucket-thesis.tech { border-color: var(--tech-color); }
+  .bucket-thesis.def { border-color: var(--def-color); }
+  .bucket-thesis.lux { border-color: var(--lux-color); }
+  .bucket-thesis.bank { border-color: var(--bank-color); }
+
+  .bucket-thesis .thesis-label {
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: var(--cream);
+  }
+
+  /* ── Summary Bar ── */
+  .summary-bar {
+    display: flex;
+    gap: 1px;
+    margin-bottom: 18px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .summary-stat {
+    flex: 1;
+    background: var(--bg2);
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .summary-stat-label {
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+
+  .summary-stat-value {
+    font-size: 16px;
+    font-weight: 600;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  /* ── Ticker Grid ── */
+  .ticker-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+  }
+
+  .ticker-card {
+    background: var(--bg2);
+    padding: 14px;
+    transition: background 0.15s;
+    cursor: default;
+  }
+  .ticker-card:hover { background: var(--bg3); }
+
+  .tc-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+  }
+
+  .tc-symbol {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+
+  .tc-name {
+    font-size: 9px;
+    color: var(--dim);
+    margin-top: 2px;
+  }
+
+  .tc-price {
+    text-align: right;
+  }
+
+  .tc-price-val {
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .tc-change {
+    font-size: 10px;
+    margin-top: 2px;
+  }
+  .tc-change.pos { color: var(--green); }
+  .tc-change.neg { color: var(--red); }
+
+  /* Sparkline */
+  .sparkline-wrap {
+    height: 48px;
+    margin: 8px 0;
+    position: relative;
+  }
+
+  /* Metrics row */
+  .tc-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    margin-top: 8px;
+  }
+
+  .tc-metric {
+    background: var(--bg);
+    padding: 6px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .tc-metric-label {
+    font-size: 8px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+
+  .tc-metric-val {
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  /* MR Score bar */
+  .mr-score-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .mr-label { font-size: 9px; color: var(--dim); letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; }
+
+  .mr-bar-track {
+    flex: 1;
+    height: 4px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .mr-bar-fill {
+    height: 100%;
+    transition: width 0.6s ease;
+  }
+
+  .mr-score-num { font-size: 10px; font-weight: 600; min-width: 28px; text-align: right; }
+
+  /* Signal badge */
+  .signal {
+    display: inline-block;
+    font-size: 8px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    font-weight: 600;
+    margin-top: 6px;
+  }
+  .signal.strong-buy { background: rgba(76,175,130,0.2); color: var(--green); border: 1px solid rgba(76,175,130,0.4); }
+  .signal.buy { background: rgba(76,175,130,0.1); color: #6ec4a0; border: 1px solid rgba(76,175,130,0.2); }
+  .signal.neutral { background: rgba(200,168,75,0.1); color: var(--gold); border: 1px solid rgba(200,168,75,0.2); }
+  .signal.caution { background: rgba(224,140,58,0.1); color: var(--orange); border: 1px solid rgba(224,140,58,0.2); }
+  .signal.avoid { background: rgba(224,92,92,0.1); color: var(--red); border: 1px solid rgba(224,92,92,0.2); }
+
+  /* Loading state */
+  .loading-overlay {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--dim);
+  }
+  .loading-spinner {
+    width: 24px; height: 24px;
+    border: 2px solid var(--border);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 14px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error-msg { color: var(--red); text-align: center; padding: 40px; font-size: 11px; }
+
+  /* Legend area for defense */
+  .valuation-note {
+    margin-top: 14px;
+    padding: 10px 14px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    font-size: 10px;
+    color: var(--dim);
+    line-height: 1.7;
+  }
+  .valuation-note span { color: var(--cream); }
+
+  /* ── Time toggle ── */
+  .time-toggle {
+    display: flex;
+    gap: 1px;
+    margin-left: auto;
+    background: var(--border);
+    border: 1px solid var(--border);
+  }
+  .tt-btn {
+    padding: 5px 12px;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-family: 'IBM Plex Mono', monospace;
+    cursor: pointer;
+    background: var(--bg2);
+    color: var(--dim);
+    border: none;
+    transition: all 0.15s;
+    font-weight: 500;
+  }
+  .tt-btn.active { background: var(--bg3); color: var(--cream); }
+  .tt-btn:hover { color: var(--cream); }
+
+  .controls-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  .controls-label { font-size: 9px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.1em; }
+
+  /* tooltip */
+  .tooltip-text { color: var(--dim); font-size: 9px; border-top: 1px solid var(--border); margin-top: 6px; padding-top: 5px; line-height: 1.5; }
+
+  /* Defensive color helpers */
+  .c-green { color: var(--green); }
+  .c-red { color: var(--red); }
+  .c-gold { color: var(--gold); }
+  .c-dim { color: var(--dim); }
+
+  /* ── Assumptions Button ── */
+  .btn-assumptions {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--dim);
+    padding: 7px 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .btn-assumptions:hover { border-color: var(--gold); color: var(--gold); }
+  .btn-assumptions.active { border-color: var(--gold); color: var(--gold2); background: rgba(200,168,75,0.08); }
+
+  /* ── Assumptions Drawer ── */
+  .assumptions-drawer {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.4s cubic-bezier(0.4,0,0.2,1), padding 0.3s;
+    padding: 0 28px;
+  }
+  .assumptions-drawer.open {
+    max-height: 700px;
+    padding: 20px 28px;
+  }
+
+  .drawer-inner {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 0;
+    border: 1px solid var(--border);
+  }
+
+  .param-section {
+    padding: 16px 18px;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .param-section:last-child { border-right: none; }
+
+  .param-section-title {
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 600;
+    margin-bottom: 14px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .param-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .param-row:last-child { margin-bottom: 0; }
+
+  .param-label {
+    font-size: 10px;
+    color: var(--dim);
+    flex: 1;
+    line-height: 1.3;
+  }
+  .param-label small { display: block; font-size: 8px; color: #4a566a; margin-top: 1px; }
+
+  .param-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .param-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 90px;
+    height: 3px;
+    background: var(--border);
+    outline: none;
+    border-radius: 0;
+    cursor: pointer;
+  }
+  .param-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 10px; height: 10px;
+    background: var(--gold);
+    cursor: pointer;
+    border-radius: 0;
+    transition: background 0.15s;
+  }
+  .param-slider::-webkit-slider-thumb:hover { background: var(--gold2); }
+  .param-slider::-moz-range-thumb {
+    width: 10px; height: 10px;
+    background: var(--gold);
+    border: none;
+    border-radius: 0;
+    cursor: pointer;
+  }
+
+  .param-value {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--cream);
+    min-width: 32px;
+    text-align: right;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .drawer-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  .param-changed-badge {
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    color: var(--gold);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .param-changed-badge.visible { opacity: 1; }
+
+  .btn-reset {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--dim);
+    padding: 5px 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    cursor: pointer;
+    letter-spacing: 0.08em;
+    transition: all 0.2s;
+  }
+  .btn-reset:hover { border-color: var(--red); color: var(--red); }
+
+  /* Weight pills shown in section header */
+  .weight-display {
+    font-size: 8px;
+    color: var(--dim);
+    margin-left: 6px;
+  }
+  .weight-display span { color: var(--gold); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="header-title">
+      <span class="dot"></span>
+      MARKET ENTRY SCANNER
+    </div>
+    <div class="header-sub">GEOPOLITICAL REGIME · MEAN REVERSION &amp; MOMENTUM ANALYSIS · 3M / 1W HORIZON</div>
+  </div>
+  <div class="api-zone">
+    <button class="btn-assumptions" id="assumptionsBtn" onclick="toggleDrawer()">⚙ ASSUMPTIONS</button>
+    <input class="api-input" id="apiKey" type="password" placeholder="FMP API KEY" autocomplete="off">
+    <button class="btn" id="loadBtn" onclick="loadAllData()">LOAD DATA</button>
+    <div class="status-dot" id="statusDot"></div>
+  </div>
+</div>
+
+<div class="regime-banner">
+  <span class="regime-tag risk-off">Risk-Off</span>
+  <span class="regime-tag geo">Geopolitical Shock</span>
+  <span class="regime-tag rates">Rates Repricing</span>
+  <span class="regime-tag oil">Oil ↑</span>
+  <span class="regime-note">Iran attacks · Fed/ECB cut timing uncertainty · USD resilience · Defense budget uplift · 2026-03-09</span>
+</div>
+
+<div class="assumptions-drawer" id="assumptionsDrawer">
+  <div class="drawer-inner">
+
+    <!-- Technical -->
+    <div class="param-section">
+      <div class="param-section-title">Technical Indicators</div>
+      <div class="param-row">
+        <div class="param-label">RSI Period<small>Lookback for RSI calculation</small></div>
+        <div class="param-right">
+          <input type="range" class="param-slider" id="p-rsiPeriod" min="5" max="30" step="1" value="14" oninput="onParam('rsiPeriod',this.value,this)">
+          <span class="param-value" id="v-rsiPeriod">14</span>
+        </div>
+      </div>
+      <div class="param-row">
+        <div class="param-label">Short MA Period<small>Fast moving average (vs 50-DMA)</small></div>
+        <div class="param-right">
+          <input type="range" class="param-slider" id="p-maSlow" min="10" max="100" step="5" value="50" oninput="onParam('maSlow',this.value,this)">
+          <span class="param-value" id="v-maSlow">50</span>
+        </div>
+      </div>
+      <div class="param-row">
+        <div class="param-label">Long MA Period<small>Slow moving average (vs 200-DMA)</small></div>
+        <div class="param-right">
+          <input type="range" class="param-slider" id="p-maLong" min="50" max="300" step="10" value="200" oninput="onParam('maLong',this.value,this)">
+          <span class="param-value" id="v-maLong">200</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- RSI Thresholds -->
+    <div class="param-section">
+      <div class="param-section-title">RSI Thresholds <span class="weight-display">weight: <span id="w-rsi">35</span>%</span></div>
+      <div class="param-row">
+        <div class="param-label">Deep Oversold (strong MR signal)<small>Below this = max buy score</small></div>
+        <div class="param-right">
+          <input type="range" class="param-slider" id="p-rsiDeepOS" min="15" max="45" step="1" value="30" oninput="onParam('rsiDeepOS',this.value,this)">
+          <span class="param-value" id="v-rsiDeepOS">30</span>
+        </div>
+      </div>
+      <div class="param-row">
+        <div class="param-label">Oversold (moderate MR signal)<small>Below this = elevated buy score</small></div>
+        <div class="param-right">
+          <input type="range" class="param-slider" id="p-rsiOS" min="25" max="55" step="1" value="40" oninput="onParam('rsiOS',this.value,this)">
+          <span class="param-value" id="v-rsiOS">40</span>
+        </div>
+      </div>
+      <div class="param-row">
+        <div class="param-label">Overbought (caution zone)<small>Above this = penalise MR score</small></div>
+        <div class="param-right">
+          <input type="range" class="param-slider" id="p-rsiOB" min="55" max="80" step="1" value="60" oninput="onParam('rsiOB',this.value,this)">
+          <span class="param-value" id="v-rsiOB">60</span>
+        </div>
+      </div>
+      <div class="param-row">
+        <div class="param-label">Deep Overbought (avoid zone)<small>Above this = strong penalty</small></div>
+        <div class="param-right">
+          <input type="range" class="param-slider" id="p-rsiDeepOB" min="60" max="90" step="1" value="70" oninput="onParam('rsiDeepOB',this.value,this)">
+          <span class="param-value" id="v-rsiDeepOB">70</span>
+        </div>
+      </div>
+      <div class="param-row">
+        <div class="param-label">RSI Score Weight<small>% contribution to composite score</small></div>
+        <div class="param-right">
+          <input type="range" class="param-slider" id="p-wRsi" min="0" max="60" step="5" value="35" oninput="onParam('wRsi',this.value,this)">
+          <span class="param-value" id="v-wRsi">35%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Return Thresholds -->
+    <div class="param-section">
+      <div class="param-section-title">Return Thresholds <span class="weight-display">weight: <span id="w-ret">35</span>%</span></div>
+      <div class="param-row">
+        <div class="param-label">1W Strong Pullback<small>Below this = strong MR entry signal</small></div>
+        <div class="param-right">
+          <input type="range" class="param-slider" id="p-ret1wStrong" min="-20" max="-1" step="0.5" value="-5" oninput="onParam('ret1wStrong',this.value,this)">
+          <span class="param-value" id="v-ret1wStrong">-5%</span>
+        </div>
+      </div>
+      <div class="param-row">
+        <div class="param-label">1W Moderate Pullback<small>Below this = moderate entry signal</small></div>
+        <div class="param-right">
+          <input type="range" class="param-slider" id="p-ret1wMod" min="-10" max="-0.5" step="0.5" value="-2" oninput="onParam('ret1wMod',this.value,this)">
+          <span class="param-value" id="v-ret1wMod">-2%</span>
+        </div>
+      </div>
+      <div class="param-row">
+        <div class="param-label">3M Deep Correction<small>Below this = strong MR entry signal</small></div>
+        <div class="param-right">
+          <input type="range" class="param-slider" id="p-ret3mStrong" min="-40" max="-5" step="1" value="-15" oninput="onParam('ret3mStrong',this.value,this)">
+          <span class="param-value" id="v-ret3mStrong">-15%</span>
+        </div>
+      </div>
+      <div class="param-row">
+        <div class="param-label">3M Moderate Correction<small>Below this = moderate entry signal</small></div>
+        <div class="param-right">
+          <input type="range" class="param-slider" id="p-ret3mMod" min="-20" max="-2" step="1" value="-8" oninput="onParam('ret3mMod',this.value,this)">
+          <span class="param-value" id="v-ret3mMod">-8%</span>
+        </div>
+      </div>
+      <div class="param-row">
+        <div class="param-label">Return Score Weight<small>% contribution to composite score</small></div>
+        <div class="param-right">
+          <input type="range" class="param-slider" id="p-wRet" min="0" max="60" step="5" value="35" oninput="onParam('wRet',this.value,this)">
+          <span class="param-value" id="v-wRet">35%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- MA Distance & Signal Bands -->
+    <div class="param-section">
+      <div class="param-section-title">MA Distance &amp; Signal Bands <span class="weight-display">MA weight: <span id="w-ma">30</span>%</span></div>
+      <div class="param-row">
+        <div class="param-label">MA Strong Divergence<small>Below this = strong MR signal vs short MA</small></div>
+        <div class="param-right">
+          <input type="range" class="param-slider" id="p-maDivStrong" min="-25" max="-2" step="1" value="-10" oninput="onParam('maDivStrong',this.value,this)">
+          <span class="param-value" id="v-maDivStrong">-10%</span>
+        </div>
+      </div>
+      <div class="param-row">
+        <div class="param-label">MA Moderate Divergence<small>Below this = moderate entry signal</small></div>
+        <div class="param-right">
+          <input type="range" class="param-slider" id="p-maDivMod" min="-15" max="-1" step="1" value="-5" oninput="onParam('maDivMod',this.value,this)">
+          <span class="param-value" id="v-maDivMod">-5%</span>
+        </div>
+      </div>
+      <div class="param-row">
+        <div class="param-label">MA Score Weight<small>% contribution to composite score</small></div>
+        <div class="param-right">
+          <input type="range" class="param-slider" id="p-wMa" min="0" max="60" step="5" value="30" oninput="onParam('wMa',this.value,this)">
+          <span class="param-value" id="v-wMa">30%</span>
+        </div>
+      </div>
+      <div class="param-row">
+        <div class="param-label">Strong Buy Threshold<small>Score ≥ this → STRONG BUY signal</small></div>
+        <div class="param-right">
+          <input type="range" class="param-slider" id="p-thStrong" min="55" max="90" step="1" value="70" oninput="onParam('thStrong',this.value,this)">
+          <span class="param-value" id="v-thStrong">70</span>
+        </div>
+      </div>
+      <div class="param-row">
+        <div class="param-label">Buy Threshold<small>Score ≥ this → MR ENTRY signal</small></div>
+        <div class="param-right">
+          <input type="range" class="param-slider" id="p-thBuy" min="40" max="75" step="1" value="58" oninput="onParam('thBuy',this.value,this)">
+          <span class="param-value" id="v-thBuy">58</span>
+        </div>
+      </div>
+      <div class="param-row">
+        <div class="param-label">Selective MR Cap (Luxury)<small>Max score for high-risk bucket</small></div>
+        <div class="param-right">
+          <input type="range" class="param-slider" id="p-luxCap" min="40" max="90" step="5" value="70" oninput="onParam('luxCap',this.value,this)">
+          <span class="param-value" id="v-luxCap">70</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /drawer-inner -->
+  <div class="drawer-footer">
+    <span class="param-changed-badge" id="changedBadge">● ASSUMPTIONS MODIFIED — SCORES LIVE-UPDATED</span>
+    <button class="btn-reset" onclick="resetParams()">↺ RESET DEFAULTS</button>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-bucket="ai" onclick="switchTab('ai')">
+    <span class="tab-icon">🤖</span> AI / Mega-Cap
+  </div>
+  <div class="tab" data-bucket="tech" onclick="switchTab('tech')">
+    <span class="tab-icon">💻</span> Broad Tech Ex-AI
+  </div>
+  <div class="tab" data-bucket="def" onclick="switchTab('def')">
+    <span class="tab-icon">🎯</span> Defense
+  </div>
+  <div class="tab" data-bucket="lux" onclick="switchTab('lux')">
+    <span class="tab-icon">💎</span> Luxury / Discretionary
+  </div>
+  <div class="tab" data-bucket="bank" onclick="switchTab('bank')">
+    <span class="tab-icon">🏦</span> Banks
+  </div>
+</div>
+
+<div class="panels">
+
+  <!-- AI Panel -->
+  <div class="panel active" id="panel-ai">
+    <div class="bucket-header">
+      <div>
+        <div class="bucket-title ai">AI / Mega-Cap Tech</div>
+        <div class="bucket-sub">Core AI infrastructure & hyperscalers — NVDA, MSFT, GOOGL, META, AMZN, AAPL, AVGO, TSLA<br>
+        Thesis: Mean reversion from overbought post-Stargate euphoria. Geopolitical risk creates entry windows but secular capex story intact.</div>
+      </div>
+      <div class="bucket-thesis ai">
+        <div class="thesis-label">📋 Entry Framework</div>
+        RSI &lt; 40 + &gt;8% pullback from 50-DMA = high-conviction entry.<br>
+        Prefer names with data-center / sovereign AI tailwinds.<br>
+        Avoid single-quarter earnings longs near results.
+      </div>
+    </div>
+    <div class="controls-row">
+      <span class="controls-label">Timeframe:</span>
+      <div class="time-toggle" id="toggle-ai">
+        <button class="tt-btn active" onclick="setTime('ai','1W',this)">1W</button>
+        <button class="tt-btn" onclick="setTime('ai','3M',this)">3M</button>
+      </div>
+    </div>
+    <div class="summary-bar" id="summary-ai">
+      <div class="summary-stat"><div class="summary-stat-label">Avg RSI</div><div class="summary-stat-value c-dim" id="sum-ai-rsi">—</div></div>
+      <div class="summary-stat"><div class="summary-stat-label">Avg 1W Ret</div><div class="summary-stat-value c-dim" id="sum-ai-1w">—</div></div>
+      <div class="summary-stat"><div class="summary-stat-label">Avg 3M Ret</div><div class="summary-stat-value c-dim" id="sum-ai-3m">—</div></div>
+      <div class="summary-stat"><div class="summary-stat-label">vs 50-DMA</div><div class="summary-stat-value c-dim" id="sum-ai-ma">—</div></div>
+      <div class="summary-stat"><div class="summary-stat-label">Bucket Signal</div><div class="summary-stat-value c-dim" id="sum-ai-sig">—</div></div>
+    </div>
+    <div class="ticker-grid" id="grid-ai"><div class="loading-overlay"><div class="loading-spinner"></div>Enter FMP API key and click LOAD DATA</div></div>
+  </div>
+
+  <!-- Tech Panel -->
+  <div class="panel" id="panel-tech">
+    <div class="bucket-header">
+      <div>
+        <div class="bucket-title tech">Broad Tech Ex-AI</div>
+        <div class="bucket-sub">Profitable software & non-AI semis — ADBE, ORCL, CRM, INTU, NOW, QCOM, TXN, AMAT, FTNT, CDNS<br>
+        Focus: FCF yield &gt; 3%, P/E &lt; 30x, EBITDA margins &gt; 25% — durable compounders on sale.</div>
+      </div>
+      <div class="bucket-thesis tech">
+        <div class="thesis-label">📋 Entry Framework</div>
+        Risk-off rotation punishes high-beta growth indiscriminately.<br>
+        Screen for: FCF yield attractive vs 10Y, &gt;10% off highs.<br>
+        3-12m horizon: re-rating as rates peak &amp; growth reaccelerates.
+      </div>
+    </div>
+    <div class="controls-row">
+      <span class="controls-label">Timeframe:</span>
+      <div class="time-toggle" id="toggle-tech">
+        <button class="tt-btn active" onclick="setTime('tech','1W',this)">1W</button>
+        <button class="tt-btn" onclick="setTime('tech','3M',this)">3M</button>
+      </div>
+    </div>
+    <div class="summary-bar">
+      <div class="summary-stat"><div class="summary-stat-label">Avg RSI</div><div class="summary-stat-value c-dim" id="sum-tech-rsi">—</div></div>
+      <div class="summary-stat"><div class="summary-stat-label">Avg 1W Ret</div><div class="summary-stat-value c-dim" id="sum-tech-1w">—</div></div>
+      <div class="summary-stat"><div class="summary-stat-label">Avg 3M Ret</div><div class="summary-stat-value c-dim" id="sum-tech-3m">—</div></div>
+      <div class="summary-stat"><div class="summary-stat-label">vs 50-DMA</div><div class="summary-stat-value c-dim" id="sum-tech-ma">—</div></div>
+      <div class="summary-stat"><div class="summary-stat-label">Bucket Signal</div><div class="summary-stat-value c-dim" id="sum-tech-sig">—</div></div>
+    </div>
+    <div class="ticker-grid" id="grid-tech"><div class="loading-overlay"><div class="loading-spinner"></div>Enter FMP API key and click LOAD DATA</div></div>
+  </div>
+
+  <!-- Defense Panel -->
+  <div class="panel" id="panel-def">
+    <div class="bucket-header">
+      <div>
+        <div class="bucket-title def">Defense</div>
+        <div class="bucket-sub">Structural momentum long — LMT, RTX, NOC, GD, BA, HII, LDOS, AXON, PLTR<br>
+        NATO spending ramp + Iran shock = secular + cyclical tailwinds. Momentum, not mean reversion.</div>
+      </div>
+      <div class="bucket-thesis def">
+        <div class="thesis-label">📋 Entry Framework</div>
+        Buy dips, not exhaustion. Look for names that lagged the initial rally.<br>
+        US + European defense (BAESF, RHMG) divergence opportunity.<br>
+        Valuation premium warranted given order book visibility.
+      </div>
+    </div>
+    <div class="controls-row">
+      <span class="controls-label">Timeframe:</span>
+      <div class="time-toggle" id="toggle-def">
+        <button class="tt-btn active" onclick="setTime('def','1W',this)">1W</button>
+        <button class="tt-btn" onclick="setTime('def','3M',this)">3M</button>
+      </div>
+    </div>
+    <div class="summary-bar">
+      <div class="summary-stat"><div class="summary-stat-label">Avg RSI</div><div class="summary-stat-value c-dim" id="sum-def-rsi">—</div></div>
+      <div class="summary-stat"><div class="summary-stat-label">Avg 1W Ret</div><div class="summary-stat-value c-dim" id="sum-def-1w">—</div></div>
+      <div class="summary-stat"><div class="summary-stat-label">Avg 3M Ret</div><div class="summary-stat-value c-dim" id="sum-def-3m">—</div></div>
+      <div class="summary-stat"><div class="summary-stat-label">vs 50-DMA</div><div class="summary-stat-value c-dim" id="sum-def-ma">—</div></div>
+      <div class="summary-stat"><div class="summary-stat-label">Bucket Signal</div><div class="summary-stat-value c-dim" id="sum-def-sig">—</div></div>
+    </div>
+    <div class="ticker-grid" id="grid-def"><div class="loading-overlay"><div class="loading-spinner"></div>Enter FMP API key and click LOAD DATA</div></div>
+  </div>
+
+  <!-- Luxury Panel -->
+  <div class="panel" id="panel-lux">
+    <div class="bucket-header">
+      <div>
+        <div class="bucket-title lux">Luxury / Discretionary</div>
+        <div class="bucket-sub">LVMUY, HESAY, RACE, RCL, CCL, WYNN, HLT, MAR, BKNG<br>
+        High sensitivity to global risk sentiment. Oil + geopolitics = near-term headwind. Selective MR candidates only.</div>
+      </div>
+      <div class="bucket-thesis lux">
+        <div class="thesis-label">⚠️ Caution Framework</div>
+        War + sticky oil scenario = drawdowns can deepen.<br>
+        Only enter names with: strong balance sheet, China exposure &lt; 30%.<br>
+        Experiences &amp; travel more vulnerable than hard luxury.
+      </div>
+    </div>
+    <div class="controls-row">
+      <span class="controls-label">Timeframe:</span>
+      <div class="time-toggle" id="toggle-lux">
+        <button class="tt-btn active" onclick="setTime('lux','1W',this)">1W</button>
+        <button class="tt-btn" onclick="setTime('lux','3M',this)">3M</button>
+      </div>
+    </div>
+    <div class="summary-bar">
+      <div class="summary-stat"><div class="summary-stat-label">Avg RSI</div><div class="summary-stat-value c-dim" id="sum-lux-rsi">—</div></div>
+      <div class="summary-stat"><div class="summary-stat-label">Avg 1W Ret</div><div class="summary-stat-value c-dim" id="sum-lux-1w">—</div></div>
+      <div class="summary-stat"><div class="summary-stat-label">Avg 3M Ret</div><div class="summary-stat-value c-dim" id="sum-lux-3m">—</div></div>
+      <div class="summary-stat"><div class="summary-stat-label">vs 50-DMA</div><div class="summary-stat-value c-dim" id="sum-lux-ma">—</div></div>
+      <div class="summary-stat"><div class="summary-stat-label">Bucket Signal</div><div class="summary-stat-value c-dim" id="sum-lux-sig">—</div></div>
+    </div>
+    <div class="ticker-grid" id="grid-lux"><div class="loading-overlay"><div class="loading-spinner"></div>Enter FMP API key and click LOAD DATA</div></div>
+  </div>
+
+  <!-- Banks Panel -->
+  <div class="panel" id="panel-bank">
+    <div class="bucket-header">
+      <div>
+        <div class="bucket-title bank">Banks</div>
+        <div class="bucket-sub">JPM, BAC, GS, MS, WFC, C, USB, TFC<br>
+        Base case: contained conflict + CBs still cutting = quality MR long after geo selloff. Avoid EM-exposed / thin-capital names.</div>
+      </div>
+      <div class="bucket-thesis bank">
+        <div class="thesis-label">📋 Entry Framework</div>
+        Target well-capitalised US + N. European franchises.<br>
+        P/TBV &lt; 1.5x + ROE &gt; 12% = quality-on-sale threshold.<br>
+        Catalyst: geopolitical de-escalation + first rate cut.
+      </div>
+    </div>
+    <div class="controls-row">
+      <span class="controls-label">Timeframe:</span>
+      <div class="time-toggle" id="toggle-bank">
+        <button class="tt-btn active" onclick="setTime('bank','1W',this)">1W</button>
+        <button class="tt-btn" onclick="setTime('bank','3M',this)">3M</button>
+      </div>
+    </div>
+    <div class="summary-bar">
+      <div class="summary-stat"><div class="summary-stat-label">Avg RSI</div><div class="summary-stat-value c-dim" id="sum-bank-rsi">—</div></div>
+      <div class="summary-stat"><div class="summary-stat-label">Avg 1W Ret</div><div class="summary-stat-value c-dim" id="sum-bank-1w">—</div></div>
+      <div class="summary-stat"><div class="summary-stat-label">Avg 3M Ret</div><div class="summary-stat-value c-dim" id="sum-bank-3m">—</div></div>
+      <div class="summary-stat"><div class="summary-stat-label">vs 50-DMA</div><div class="summary-stat-value c-dim" id="sum-bank-ma">—</div></div>
+      <div class="summary-stat"><div class="summary-stat-label">Bucket Signal</div><div class="summary-stat-value c-dim" id="sum-bank-sig">—</div></div>
+    </div>
+    <div class="ticker-grid" id="grid-bank"><div class="loading-overlay"><div class="loading-spinner"></div>Enter FMP API key and click LOAD DATA</div></div>
+  </div>
+
+</div><!-- /panels -->
+
+<script>
+// ─── BUCKET CONFIG ───────────────────────────────────────────────
+const BUCKETS = {
+  ai: {
+    tickers: [
+      {sym:'NVDA', name:'NVIDIA Corp'},
+      {sym:'MSFT', name:'Microsoft'},
+      {sym:'GOOGL', name:'Alphabet'},
+      {sym:'META', name:'Meta Platforms'},
+      {sym:'AMZN', name:'Amazon'},
+      {sym:'AAPL', name:'Apple'},
+      {sym:'AVGO', name:'Broadcom'},
+      {sym:'TSLA', name:'Tesla'},
+    ],
+    color: '#4a90d9',
+    strategy: 'mean-reversion',
+  },
+  tech: {
+    tickers: [
+      // US Software
+      {sym:'ADBE', name:'Adobe Systems'},
+      {sym:'ORCL', name:'Oracle Corp'},
+      {sym:'CRM', name:'Salesforce'},
+      {sym:'INTU', name:'Intuit'},
+      {sym:'NOW', name:'ServiceNow'},
+      {sym:'WDAY', name:'Workday'},
+      {sym:'HUBS', name:'HubSpot'},
+      {sym:'TEAM', name:'Atlassian'},
+      // Cloud / Infrastructure
+      {sym:'NET', name:'Cloudflare'},
+      {sym:'DDOG', name:'Datadog'},
+      {sym:'SNOW', name:'Snowflake'},
+      {sym:'MDB', name:'MongoDB'},
+      // Cybersecurity
+      {sym:'CRWD', name:'CrowdStrike'},
+      {sym:'ZS', name:'Zscaler'},
+      {sym:'FTNT', name:'Fortinet'},
+      // Semis (non-AI)
+      {sym:'QCOM', name:'Qualcomm'},
+      {sym:'TXN', name:'Texas Instruments'},
+      {sym:'AMAT', name:'Applied Materials'},
+      {sym:'CDNS', name:'Cadence Design'},
+      // European Tech (US-listed) + remaining US SaaS
+      {sym:'ASML', name:'ASML Holding'},
+      {sym:'SAP',  name:'SAP SE'},
+      {sym:'PANW', name:'Palo Alto Networks'},
+      {sym:'OKTA', name:'Okta Inc'},
+      {sym:'DOCU', name:'DocuSign'},
+      {sym:'TWLO', name:'Twilio'},
+      {sym:'ESTC', name:'Elastic NV'},
+    ],
+    color: '#4caf82',
+    strategy: 'mean-reversion',
+  },
+  def: {
+    tickers: [
+      // US Defense
+      {sym:'LMT', name:'Lockheed Martin'},
+      {sym:'RTX', name:'RTX Corp'},
+      {sym:'NOC', name:'Northrop Grumman'},
+      {sym:'GD', name:'General Dynamics'},
+      {sym:'BA', name:'Boeing'},
+      {sym:'HII', name:'Huntington Ingalls'},
+      {sym:'LDOS', name:'Leidos Holdings'},
+      {sym:'AXON', name:'Axon Enterprise'},
+      {sym:'PLTR', name:'Palantir'},
+      {sym:'KTOS', name:'Kratos Defense'},
+      {sym:'CACI', name:'CACI International'},
+      // European Defense (ADR / OTC)
+      {sym:'BAESY', name:'BAE Systems (ADR)'},
+      {sym:'SAFRY', name:'Safran (ADR)'},
+      {sym:'RNMBF', name:'Rheinmetall (OTC)'},
+      {sym:'THLEF', name:'Thales (OTC)'},
+      {sym:'LDRHF', name:'Leonardo (OTC)'},
+      {sym:'AIBFF', name:'Airbus (OTC)'},
+      {sym:'SAABY', name:'Saab AB (ADR)'},
+      {sym:'MTUAY', name:'MTU Aero Engines (ADR)'},
+      {sym:'HGGOY', name:'HENSOLDT AG (ADR)'},
+    ],
+    color: '#e08c3a',
+    strategy: 'momentum',
+  },
+  lux: {
+    tickers: [
+      // European Luxury (ADR / OTC)
+      {sym:'LVMUY', name:'LVMH (ADR)'},
+      {sym:'HESAY', name:'Hermès (ADR)'},
+      {sym:'CFRUY', name:'Richemont (ADR)'},
+      {sym:'PPRUY', name:'Kering (ADR)'},
+      {sym:'BURBY', name:'Burberry (ADR)'},
+      {sym:'MONRY', name:'Moncler (ADR)'},
+      {sym:'FRNOY', name:'Brunello Cucinelli (ADR)'},
+      {sym:'RACE', name:'Ferrari NV'},
+      // US Luxury / Experiential
+      {sym:'RCL', name:'Royal Caribbean'},
+      {sym:'CCL', name:'Carnival Corp'},
+      {sym:'WYNN', name:'Wynn Resorts'},
+      {sym:'LVS', name:'Las Vegas Sands'},
+      {sym:'HLT', name:'Hilton Worldwide'},
+      {sym:'MAR', name:'Marriott Intl'},
+      {sym:'BKNG', name:'Booking Holdings'},
+      {sym:'TPR', name:'Tapestry'},
+      // Additional European Luxury
+      {sym:'SWGAY', name:'Swatch Group (ADR)'},
+      {sym:'PRDSY', name:'Prada (OTC)'},
+      {sym:'SFRGF', name:'Salvatore Ferragamo (OTC)'},
+    ],
+    color: '#9b72cf',
+    strategy: 'selective-mr',
+  },
+  bank: {
+    tickers: [
+      {sym:'JPM', name:'JPMorgan Chase'},
+      {sym:'BAC', name:'Bank of America'},
+      {sym:'GS', name:'Goldman Sachs'},
+      {sym:'MS', name:'Morgan Stanley'},
+      {sym:'WFC', name:'Wells Fargo'},
+      {sym:'C', name:'Citigroup'},
+      {sym:'USB', name:'US Bancorp'},
+      {sym:'TFC', name:'Truist Financial'},
+    ],
+    color: '#c8a84b',
+    strategy: 'mean-reversion',
+  }
+};
+
+// ─── PARAMS (all tunable assumptions) ────────────────────────────
+const DEFAULTS = {
+  // Technical
+  rsiPeriod:   14,
+  maSlow:      50,
+  maLong:      200,
+  // RSI thresholds
+  rsiDeepOS:   30,
+  rsiOS:       40,
+  rsiOB:       60,
+  rsiDeepOB:   70,
+  wRsi:        35,
+  // Return thresholds
+  ret1wStrong: -5,
+  ret1wMod:    -2,
+  ret3mStrong: -15,
+  ret3mMod:    -8,
+  wRet:        35,
+  // MA thresholds
+  maDivStrong: -10,
+  maDivMod:    -5,
+  wMa:         30,
+  // Signal bands
+  thStrong:    70,
+  thBuy:       58,
+  luxCap:      70,
+};
+let PARAMS = {...DEFAULTS};
+
+// ─── STATE ───────────────────────────────────────────────────────
+const state = {
+  priceData: {},
+  metrics: {},
+  keyMetrics: {},
+  timeframe: { ai:'1W', tech:'1W', def:'1W', lux:'1W', bank:'1W' },
+  charts: {},
+  loaded: false,
+};
+
+// ─── DRAWER ──────────────────────────────────────────────────────
+function toggleDrawer() {
+  const d = document.getElementById('assumptionsDrawer');
+  const btn = document.getElementById('assumptionsBtn');
+  d.classList.toggle('open');
+  btn.classList.toggle('active');
+}
+
+function onParam(key, rawVal, sliderEl) {
+  const val = parseFloat(rawVal);
+  PARAMS[key] = val;
+
+  // Update displayed value
+  const vEl = document.getElementById('v-' + key);
+  if (vEl) {
+    const isPct = ['wRsi','wRet','wMa','ret1wStrong','ret1wMod','ret3mStrong','ret3mMod','maDivStrong','maDivMod'].includes(key);
+    vEl.textContent = isPct ? val + '%' : val;
+  }
+
+  // Sync weight display badges
+  document.getElementById('w-rsi').textContent = PARAMS.wRsi;
+  document.getElementById('w-ret').textContent = PARAMS.wRet;
+  document.getElementById('w-ma').textContent  = PARAMS.wMa;
+
+  // Show modified badge
+  document.getElementById('changedBadge').classList.add('visible');
+
+  // Recompute metrics if we have price data
+  if (state.loaded) {
+    // If technical params changed, recompute metrics from raw prices
+    if (['rsiPeriod','maSlow','maLong'].includes(key)) {
+      Object.keys(state.priceData).forEach(sym => {
+        state.metrics[sym] = computeMetrics(state.priceData[sym]);
+      });
+    }
+    // Always re-render all buckets (scores depend on all params)
+    Object.keys(BUCKETS).forEach(bid => renderBucket(bid));
+  }
+}
+
+function resetParams() {
+  PARAMS = {...DEFAULTS};
+  // Reset all sliders
+  Object.entries(DEFAULTS).forEach(([key, val]) => {
+    const sl = document.getElementById('p-' + key);
+    const vEl = document.getElementById('v-' + key);
+    if (sl) sl.value = val;
+    if (vEl) {
+      const isPct = ['wRsi','wRet','wMa','ret1wStrong','ret1wMod','ret3mStrong','ret3mMod','maDivStrong','maDivMod'].includes(key);
+      vEl.textContent = isPct ? val + '%' : val;
+    }
+  });
+  document.getElementById('w-rsi').textContent = DEFAULTS.wRsi;
+  document.getElementById('w-ret').textContent = DEFAULTS.wRet;
+  document.getElementById('w-ma').textContent  = DEFAULTS.wMa;
+  document.getElementById('changedBadge').classList.remove('visible');
+
+  if (state.loaded) {
+    Object.keys(state.priceData).forEach(sym => {
+      state.metrics[sym] = computeMetrics(state.priceData[sym]);
+    });
+    Object.keys(BUCKETS).forEach(bid => renderBucket(bid));
+  }
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────────
+function calcRSI(prices, period) {
+  if (prices.length < period + 1) return null;
+  let gains=0, losses=0;
+  for (let i=1; i<=period; i++) {
+    const d = prices[i] - prices[i-1];
+    if (d>=0) gains+=d; else losses+=Math.abs(d);
+  }
+  let avgGain = gains/period, avgLoss = losses/period;
+  for (let i=period+1; i<prices.length; i++) {
+    const d = prices[i] - prices[i-1];
+    avgGain = (avgGain*(period-1) + Math.max(d,0)) / period;
+    avgLoss = (avgLoss*(period-1) + Math.max(-d,0)) / period;
+  }
+  if (avgLoss === 0) return 100;
+  return 100 - (100/(1 + avgGain/avgLoss));
+}
+
+function calcMA(prices, n) {
+  if (prices.length < n) return null;
+  return prices.slice(-n).reduce((a,b)=>a+b,0)/n;
+}
+
+function fmtPct(v, decimals=1) {
+  if (v===null||v===undefined) return '—';
+  return (v>=0?'+':'')+v.toFixed(decimals)+'%';
+}
+
+// ─── SCORING (PARAMS-driven) ──────────────────────────────────────
+function mrScore(metrics, strategy) {
+  const {rsi, ret1w, ret3m, ma50pct} = metrics;
+  const P = PARAMS;
+  const totalWeight = P.wRsi + P.wRet + P.wMa;
+
+  let rsiScore = 50, retScore = 50, maScore = 50;
+
+  // ── RSI sub-score ──
+  if (rsi !== null) {
+    if (strategy === 'momentum') {
+      if (rsi > P.rsiDeepOB)      rsiScore = 95;
+      else if (rsi > P.rsiOB)     rsiScore = 75;
+      else if (rsi > 50)          rsiScore = 55;
+      else if (rsi < P.rsiDeepOS) rsiScore = 15;
+      else if (rsi < P.rsiOS)     rsiScore = 30;
+      else                        rsiScore = 45;
+    } else {
+      if (rsi < P.rsiDeepOS)      rsiScore = 95;
+      else if (rsi < P.rsiOS)     rsiScore = 80;
+      else if (rsi < 50)          rsiScore = 60;
+      else if (rsi > P.rsiDeepOB) rsiScore = 10;
+      else if (rsi > P.rsiOB)     rsiScore = 25;
+      else                        rsiScore = 45;
+    }
+  }
+
+  // ── Return sub-score ──
+  if (strategy === 'momentum') {
+    if (ret3m !== null) {
+      if (ret3m > 15)             retScore = 90;
+      else if (ret3m > 5)         retScore = 70;
+      else if (ret3m > 0)         retScore = 55;
+      else if (ret3m < -10)       retScore = 15;
+      else if (ret3m < 0)         retScore = 35;
+    }
+  } else {
+    const r1 = ret1w ?? 0, r3 = ret3m ?? 0;
+    let s1 = 50, s3 = 50;
+    if (r1 < P.ret1wStrong)       s1 = 90;
+    else if (r1 < P.ret1wMod)     s1 = 72;
+    else if (r1 > 5)              s1 = 20;
+    else if (r1 > 2)              s1 = 35;
+
+    if (r3 < P.ret3mStrong)       s3 = 90;
+    else if (r3 < P.ret3mMod)     s3 = 72;
+    else if (r3 > 20)             s3 = 15;
+    else if (r3 > 10)             s3 = 30;
+
+    retScore = (s1 + s3) / 2;
+  }
+
+  // ── MA sub-score ──
+  if (ma50pct !== null) {
+    if (strategy === 'momentum') {
+      if (ma50pct > 10)           maScore = 85;
+      else if (ma50pct > 3)       maScore = 65;
+      else if (ma50pct < -8)      maScore = 15;
+      else if (ma50pct < 0)       maScore = 38;
+      else                        maScore = 52;
+    } else {
+      if (ma50pct < P.maDivStrong) maScore = 90;
+      else if (ma50pct < P.maDivMod) maScore = 72;
+      else if (ma50pct > 10)      maScore = 15;
+      else if (ma50pct > 5)       maScore = 30;
+      else                        maScore = 50;
+    }
+  }
+
+  // Weighted composite
+  const composite = totalWeight > 0
+    ? (rsiScore * P.wRsi + retScore * P.wRet + maScore * P.wMa) / totalWeight
+    : (rsiScore + retScore + maScore) / 3;
+
+  let score = Math.round(composite);
+  if (strategy === 'selective-mr') score = Math.min(score, P.luxCap);
+  return Math.max(0, Math.min(100, score));
+}
+
+function scoreToSignal(score, strategy) {
+  const {thStrong, thBuy} = PARAMS;
+  const thNeutral = Math.round((thBuy + 10) / 2);
+
+  if (strategy === 'momentum') {
+    if (score >= thStrong)        return {label:'STRONG MO',     cls:'strong-buy'};
+    if (score >= thBuy)           return {label:'MOMENTUM',      cls:'buy'};
+    if (score >= 42)              return {label:'CONSOLIDATING', cls:'neutral'};
+    return                               {label:'WEAK',          cls:'caution'};
+  }
+  if (score >= thStrong)          return {label:'STRONG BUY',    cls:'strong-buy'};
+  if (score >= thBuy)             return {label:'MR ENTRY',      cls:'buy'};
+  if (score >= 45)                return {label:'NEUTRAL',       cls:'neutral'};
+  if (score >= 32)                return {label:'CAUTION',       cls:'caution'};
+  return                                 {label:'AVOID',         cls:'avoid'};
+}
+
+function scoreColor(score) {
+  if (score >= 65) return '#4caf82';
+  if (score >= 50) return '#c8a84b';
+  if (score >= 35) return '#e08c3a';
+  return '#e05c5c';
+}
+
+// ─── FMP FETCH (stable API — /api/v3 was sunset Aug 2025) ────────
+const FMP_BASE = 'https://financialmodelingprep.com/stable';
+
+async function fmpGet(endpoint, params = {}) {
+  const qs = new URLSearchParams(params).toString();
+  const url = `${FMP_BASE}/${endpoint}${qs ? '?' + qs : ''}`;
+  let resp;
+  try {
+    resp = await fetch(url);
+  } catch(networkErr) {
+    if (networkErr instanceof TypeError) throw new Error('CORS_BLOCK');
+    throw new Error('NETWORK: ' + networkErr.message);
+  }
+  if (resp.status === 401) throw new Error('INVALID_KEY');
+  if (resp.status === 403) throw new Error('FORBIDDEN_403');
+  if (resp.status === 429) throw new Error('RATE_LIMIT');
+  if (!resp.ok) throw new Error('HTTP_' + resp.status);
+
+  let json;
+  try { json = await resp.json(); } catch(e) { throw new Error('PARSE_ERROR'); }
+
+  // Catch legacy-endpoint error message
+  const errMsg = json?.['Error Message'] || json?.message || '';
+  if (errMsg) throw new Error('FMP: ' + errMsg);
+  return json;
+}
+
+// Friendly error messages shown in the UI
+function fmpErrMessage(code) {
+  const msgs = {
+    CORS_BLOCK:    '🔒 CORS blocked — open this file from a web server, not directly from disk.<br><small>Run: <code>python3 -m http.server 8080</code> then open http://localhost:8080</small>',
+    INVALID_KEY:   '🔑 API key rejected (401) — double-check your FMP key.',
+    FORBIDDEN_403: '🚫 Access denied (403). If you have a paid plan, ensure you are using the <b>new stable API</b>.<br><small>The legacy /api/v3 was sunset August 2025 — this dashboard now uses /stable.</small>',
+    RATE_LIMIT:    '⏱ Rate limit hit (429) — wait 60 seconds and retry.',
+    PARSE_ERROR:   '⚠ Unexpected response format from FMP.',
+  };
+  for (const [key, msg] of Object.entries(msgs)) {
+    if (code.startsWith(key)) return msg;
+  }
+  return `❌ ${code}`;
+}
+
+async function fetchHistory(sym, apiKey) {
+  const end = new Date();
+  const start = new Date(); start.setMonth(start.getMonth()-6);
+  const fmt = d => d.toISOString().split('T')[0];
+  // Stable endpoint: /stable/historical-price-eod/full?symbol=SYM&from=...&to=...
+  // Returns a plain array (not wrapped in {historical:[...]})
+  const json = await fmpGet('historical-price-eod/full', {
+    symbol: sym, from: fmt(start), to: fmt(end), apikey: apiKey
+  });
+  const hist = Array.isArray(json) ? json : (json?.historical || []);
+  if (!hist.length) return null;
+  return hist.sort((a,b) => a.date.localeCompare(b.date));
+}
+
+// Probe: stable /quote?symbol=AAPL
+async function probeApiKey(apiKey) {
+  return await fmpGet('quote', { symbol: 'AAPL', apikey: apiKey });
+}
+
+async function fetchProfile(sym, apiKey) {
+  // /stable/quote has NO pe or beta — only marketCap, priceAvg50/200
+  // /stable/ratios-ttm has peRatioTTM
+  // /stable/profile has beta
+  const result = { pe: null, beta: null, mktCap: null };
+  try {
+    const q = await fmpGet('quote', { symbol: sym, apikey: apiKey });
+    const d = Array.isArray(q) ? q[0] : q;
+    if (d) result.mktCap = d.marketCap ?? null;
+  } catch(e) { console.warn(`Quote failed ${sym}:`, e.message); }
+  try {
+    const r = await fmpGet('ratios-ttm', { symbol: sym, apikey: apiKey });
+    const d = Array.isArray(r) ? r[0] : r;
+    if (d) result.pe = d.peRatioTTM ?? null;
+  } catch(e) { console.warn(`Ratios-TTM failed ${sym}:`, e.message); }
+  try {
+    const p = await fmpGet('profile', { symbol: sym, apikey: apiKey });
+    const d = Array.isArray(p) ? p[0] : p;
+    if (d) result.beta = d.beta ?? null;
+  } catch(e) { console.warn(`Profile failed ${sym}:`, e.message); }
+  return result;
+}
+
+async function sleep(ms) { return new Promise(r=>setTimeout(r,ms)); }
+
+function setProgress(msg, pct) {
+  // Update all instances of the progress elements (one per grid that is still in loading state)
+  document.querySelectorAll('[id="progressMsg"]').forEach(el => el.textContent = msg);
+  document.querySelectorAll('[id="progressBar"]').forEach(el => el.style.width = pct + '%');
+}
+
+// ─── COMPUTE METRICS (uses PARAMS) ───────────────────────────────
+function computeMetrics(hist) {
+  if (!hist || hist.length < 5) return null;
+  const closes = hist.map(d=>d.close);
+  const latest = closes[closes.length-1];
+  const w1 = closes.length >= 6 ? (latest/closes[closes.length-6]-1)*100 : null;
+  const d63 = closes.length >= 63 ? (latest/closes[closes.length-63]-1)*100 :
+              closes.length >= 2  ? (latest/closes[0]-1)*100 : null;
+  const maSlow  = calcMA(closes, PARAMS.maSlow);
+  const maLong  = calcMA(closes, PARAMS.maLong);
+  const ma50pct  = maSlow  ? (latest/maSlow -1)*100 : null;
+  const ma200pct = maLong  ? (latest/maLong -1)*100 : null;
+  const rsi = calcRSI(closes, PARAMS.rsiPeriod);
+  return {
+    price: latest,
+    ret1w: w1,
+    ret3m: d63,
+    ma50: maSlow, ma200: maLong,
+    ma50pct, ma200pct,
+    rsi,
+  };
+}
+
+// ─── SPARKLINE ───────────────────────────────────────────────────
+function drawSparkline(canvasId, hist, timeframe, color) {
+  const existing = state.charts[canvasId];
+  if (existing) { existing.destroy(); delete state.charts[canvasId]; }
+
+  const canvas = document.getElementById(canvasId);
+  if (!canvas || !hist) return;
+
+  const days = timeframe === '1W' ? 7 : 65;
+  const data = hist.slice(-days);
+  const closes = data.map(d=>d.close);
+  const first = closes[0], last = closes[closes.length-1];
+  const up = last >= first;
+
+  const ctx = canvas.getContext('2d');
+  const grad = ctx.createLinearGradient(0, 0, 0, 48);
+  grad.addColorStop(0, (up?'rgba(76,175,130,':'rgba(224,92,92,')+'0.25)');
+  grad.addColorStop(1, (up?'rgba(76,175,130,':'rgba(224,92,92,')+'0.0)');
+
+  state.charts[canvasId] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: data.map(d=>d.date),
+      datasets: [{
+        data: closes,
+        borderColor: up ? '#4caf82' : '#e05c5c',
+        borderWidth: 1.5,
+        fill: true,
+        backgroundColor: grad,
+        pointRadius: 0,
+        tension: 0.3,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      animation: { duration: 400 },
+      plugins: { legend: {display:false}, tooltip: {enabled:false} },
+      scales: {
+        x: {display:false},
+        y: {display:false, grace: '5%'}
+      }
+    }
+  });
+}
+
+// ─── RENDER CARD ─────────────────────────────────────────────────
+function renderCard(bucketId, ticker, hist, km, strategy, timeframe) {
+  const m = state.metrics[ticker.sym];
+  if (!m) return '<div class="ticker-card"><div class="tc-symbol">'+ticker.sym+'</div><div class="tc-name">No data</div></div>';
+
+  const score = mrScore(m, strategy);
+  const sig = scoreToSignal(score, strategy);
+  const sc = scoreColor(score);
+
+  const rsiClass = m.rsi ? (m.rsi < PARAMS.rsiDeepOS ? 'c-green' : m.rsi > PARAMS.rsiDeepOB ? 'c-red' : 'c-gold') : 'c-dim';
+  const ma50Class = m.ma50pct !== null ? (m.ma50pct < PARAMS.maDivMod ? 'c-green' : m.ma50pct > 5 ? 'c-red' : 'c-gold') : 'c-dim';
+
+  // P/E and valuation from profile endpoint (free tier)
+  const pe = km && km.pe ? Number(km.pe).toFixed(1)+'x' : '—';
+  const beta = km && km.beta ? Number(km.beta).toFixed(2) : '—';
+  const mktCap = km && km.mktCap ? (km.mktCap >= 1e12 ? (km.mktCap/1e12).toFixed(1)+'T' : km.mktCap >= 1e9 ? (km.mktCap/1e9).toFixed(0)+'B' : '—') : '—';
+
+  const ret = timeframe === '1W' ? m.ret1w : m.ret3m;
+  const retLabel = timeframe === '1W' ? '1W' : '3M';
+  const retClass = ret > 0 ? 'pos' : 'neg';
+
+  const canvasId = `spark-${bucketId}-${ticker.sym}`;
+
+  return `<div class="ticker-card">
+    <div class="tc-top">
+      <div>
+        <div class="tc-symbol">${ticker.sym}</div>
+        <div class="tc-name">${ticker.name}</div>
+        <span class="signal ${sig.cls}">${sig.label}</span>
+      </div>
+      <div class="tc-price">
+        <div class="tc-price-val">$${m.price.toFixed(2)}</div>
+        <div class="tc-change ${retClass}">${fmtPct(ret)} ${retLabel}</div>
+      </div>
+    </div>
+    <div class="sparkline-wrap"><canvas id="${canvasId}" height="48"></canvas></div>
+    <div class="tc-metrics">
+      <div class="tc-metric">
+        <div class="tc-metric-label">RSI(${PARAMS.rsiPeriod})</div>
+        <div class="tc-metric-val ${rsiClass}">${m.rsi ? m.rsi.toFixed(1) : '—'}</div>
+      </div>
+      <div class="tc-metric">
+        <div class="tc-metric-label">vs ${PARAMS.maSlow}-DMA</div>
+        <div class="tc-metric-val ${ma50Class}">${m.ma50pct !== null ? fmtPct(m.ma50pct) : '—'}</div>
+      </div>
+      <div class="tc-metric">
+        <div class="tc-metric-label">vs ${PARAMS.maLong}-DMA</div>
+        <div class="tc-metric-val ${m.ma200pct !== null ? (m.ma200pct<0?'c-red':'c-green') : 'c-dim'}">${m.ma200pct !== null ? fmtPct(m.ma200pct) : '—'}</div>
+      </div>
+      <div class="tc-metric">
+        <div class="tc-metric-label">P/E</div>
+        <div class="tc-metric-val">${pe}</div>
+      </div>
+      <div class="tc-metric">
+        <div class="tc-metric-label">Beta</div>
+        <div class="tc-metric-val ${km && km.beta > 1.5 ? 'c-red' : km && km.beta < 0.8 ? 'c-green' : 'c-gold'}">${beta}</div>
+      </div>
+      <div class="tc-metric">
+        <div class="tc-metric-label">Mkt Cap</div>
+        <div class="tc-metric-val">${mktCap}</div>
+      </div>
+    </div>
+    <div class="mr-score-row">
+      <span class="mr-label">${strategy==='momentum'?'MO':'MR'} SCORE</span>
+      <div class="mr-bar-track">
+        <div class="mr-bar-fill" style="width:${score}%;background:${sc}"></div>
+      </div>
+      <span class="mr-score-num" style="color:${sc}">${score}</span>
+    </div>
+  </div>`;
+}
+
+// ─── UPDATE SUMMARY ──────────────────────────────────────────────
+function updateSummary(bucketId, strategy) {
+  const tickers = BUCKETS[bucketId].tickers;
+  const validM = tickers.map(t=>state.metrics[t.sym]).filter(Boolean);
+  if (!validM.length) return;
+
+  const avg = arr => arr.filter(v=>v!==null&&v!==undefined).reduce((a,b)=>a+b,0)/arr.filter(v=>v!==null&&v!==undefined).length;
+
+  const avgRsi = avg(validM.map(m=>m.rsi));
+  const avg1w = avg(validM.map(m=>m.ret1w));
+  const avg3m = avg(validM.map(m=>m.ret3m));
+  const avgMa = avg(validM.map(m=>m.ma50pct));
+  const avgScore = avg(validM.map(m=>mrScore(m,strategy)));
+
+  const rsiEl = document.getElementById(`sum-${bucketId}-rsi`);
+  const w1El = document.getElementById(`sum-${bucketId}-1w`);
+  const m3El = document.getElementById(`sum-${bucketId}-3m`);
+  const maEl = document.getElementById(`sum-${bucketId}-ma`);
+  const sigEl = document.getElementById(`sum-${bucketId}-sig`);
+
+  if(rsiEl) { rsiEl.textContent = avgRsi.toFixed(1); rsiEl.className='summary-stat-value '+(avgRsi<40?'c-green':avgRsi>65?'c-red':'c-gold'); }
+  if(w1El) { w1El.textContent = fmtPct(avg1w); w1El.className='summary-stat-value '+(avg1w>=0?'c-green':'c-red'); }
+  if(m3El) { m3El.textContent = fmtPct(avg3m); m3El.className='summary-stat-value '+(avg3m>=0?'c-green':'c-red'); }
+  if(maEl) { maEl.textContent = fmtPct(avgMa); maEl.className='summary-stat-value '+(avgMa<-5?'c-green':avgMa>5?'c-red':'c-gold'); }
+
+  if(sigEl) {
+    const sig = scoreToSignal(Math.round(avgScore), strategy);
+    sigEl.textContent = sig.label;
+    const colorMap = {
+      'strong-buy':'#4caf82','buy':'#6ec4a0',
+      'neutral':'#c8a84b','caution':'#e08c3a','avoid':'#e05c5c'
+    };
+    sigEl.style.color = colorMap[sig.cls] || '#ddd5c0';
+  }
+}
+
+// ─── RENDER BUCKET ───────────────────────────────────────────────
+function renderBucket(bucketId) {
+  const {tickers, color, strategy} = BUCKETS[bucketId];
+  const tf = state.timeframe[bucketId];
+  const grid = document.getElementById(`grid-${bucketId}`);
+  if (!grid) return;
+
+  grid.innerHTML = tickers.map(t => 
+    renderCard(bucketId, t, state.priceData[t.sym], state.keyMetrics[t.sym], strategy, tf)
+  ).join('');
+
+  // Draw sparklines after DOM update
+  setTimeout(() => {
+    tickers.forEach(t => {
+      const hist = state.priceData[t.sym];
+      if (hist) drawSparkline(`spark-${bucketId}-${t.sym}`, hist, tf, color);
+    });
+  }, 50);
+
+  updateSummary(bucketId, strategy);
+}
+
+// ─── LOAD ALL DATA ────────────────────────────────────────────────
+async function loadAllData() {
+  const apiKey = document.getElementById('apiKey').value.trim();
+  if (!apiKey) { alert('Please enter your FMP API key'); return; }
+
+  const dot = document.getElementById('statusDot');
+  const btn = document.getElementById('loadBtn');
+  dot.className = 'status-dot loading';
+  btn.disabled = true;
+  btn.textContent = 'LOADING...';
+
+  // Show progress UI in all grids
+  const progressHTML = `<div class="loading-overlay">
+    <div class="loading-spinner"></div>
+    <div id="progressMsg" style="margin-top:8px;color:var(--dim);font-size:11px;">Connecting to FMP...</div>
+    <div style="width:200px;height:3px;background:var(--border);margin:10px auto 0;border:1px solid var(--border);">
+      <div id="progressBar" style="height:100%;background:var(--gold);width:0%;transition:width 0.3s;"></div>
+    </div>
+  </div>`;
+  Object.keys(BUCKETS).forEach(bid => {
+    const grid = document.getElementById(`grid-${bid}`);
+    if (grid) grid.innerHTML = progressHTML;
+  });
+
+  const allTickers = Object.values(BUCKETS).flatMap(b => b.tickers);
+  const total = allTickers.length;
+
+  // ── Step 1: Probe API key with /quote (free tier, tests CORS + key validity) ──
+  try {
+    setProgress('Step 1/3 — Testing API key...', 2);
+    await probeApiKey(apiKey);
+  } catch(e) {
+    dot.className = 'status-dot err';
+    btn.disabled = false; btn.textContent = 'RETRY';
+    const errHTML = `<div class="error-msg">${fmpErrMessage(e.message)}</div>`;
+    Object.keys(BUCKETS).forEach(bid => {
+      const g = document.getElementById(`grid-${bid}`);
+      if (g) g.innerHTML = errHTML;
+    });
+    return;
+  }
+
+  // ── Step 2: Test historical endpoint specifically ──
+  try {
+    setProgress('Step 2/3 — Testing historical data access...', 5);
+    await fetchHistory(allTickers[0].sym, apiKey);
+  } catch(e) {
+    dot.className = 'status-dot err';
+    btn.disabled = false; btn.textContent = 'RETRY';
+    const msg = e.message === 'FORBIDDEN_403'
+      ? '🚫 Your FMP plan includes basic data but <b>not historical prices</b>.<br><small>Upgrade to a plan that includes "Historical Daily EOD Prices" at financialmodelingprep.com</small>'
+      : fmpErrMessage(e.message);
+    Object.keys(BUCKETS).forEach(bid => {
+      const g = document.getElementById(`grid-${bid}`);
+      if (g) g.innerHTML = `<div class="error-msg">${msg}</div>`;
+    });
+    return;
+  }
+
+  // Step 2: Fetch history for all tickers one by one, render bucket as soon as all its tickers are done
+  const bucketKeys = Object.keys(BUCKETS);
+  const bucketProgress = {};
+  bucketKeys.forEach(bid => { bucketProgress[bid] = 0; });
+
+  for (let i = 0; i < allTickers.length; i++) {
+    const t = allTickers[i];
+    const pct = Math.round((i / total) * 65) + 8;
+    setProgress(`Step 3a/3 — Price history ${i+1}/${total}: ${t.sym}`, pct);
+
+    try {
+      const hist = await fetchHistory(t.sym, apiKey);
+      if (hist && hist.length) {
+        state.priceData[t.sym] = hist;
+        state.metrics[t.sym] = computeMetrics(hist);
+      }
+    } catch(e) {
+      console.warn(`History failed ${t.sym}: ${e.message}`);
+    }
+
+    // Check if a bucket is fully loaded → render it immediately
+    bucketKeys.forEach(bid => {
+      const bTickers = BUCKETS[bid].tickers;
+      const loaded = bTickers.filter(bt => state.metrics[bt.sym]).length;
+      if (loaded === bTickers.length && bucketProgress[bid] === 0) {
+        bucketProgress[bid] = 1;
+        renderBucket(bid);
+      }
+    });
+
+    // Gentle rate limiting: 150ms between calls
+    if (i < allTickers.length - 1) await sleep(150);
+  }
+
+  // Render any buckets not yet rendered (partial data)
+  bucketKeys.forEach(bid => {
+    if (bucketProgress[bid] === 0) renderBucket(bid);
+  });
+
+  setProgress('Step 3b/3 — Fetching valuations (P/E, Beta)...', 76);
+  for (let i = 0; i < allTickers.length; i++) {
+    const t = allTickers[i];
+    const pct = 76 + Math.round((i / total) * 22);
+    setProgress(`Step 3b/3 — Valuations ${i+1}/${total}: ${t.sym}`, pct);
+
+    try {
+      state.keyMetrics[t.sym] = await fetchProfile(t.sym, apiKey);
+    } catch(e) {
+      console.warn(`Profile failed ${t.sym}`);
+    }
+    if (i < allTickers.length - 1) await sleep(120);
+
+    // Re-render bucket once profile data arrives per bucket
+    if ((i + 1) % 3 === 0) {
+      bucketKeys.forEach(bid => {
+        const bTickers = BUCKETS[bid].tickers;
+        const anyProfile = bTickers.some(bt => state.keyMetrics[bt.sym]);
+        if (anyProfile) renderBucket(bid);
+      });
+    }
+  }
+
+  // Final render all buckets
+  bucketKeys.forEach(bid => renderBucket(bid));
+
+  dot.className = 'status-dot ok';
+  btn.textContent = 'REFRESH';
+  btn.disabled = false;
+  state.loaded = true;
+}
+
+// ─── STARTUP ─────────────────────────────────────────────────────
+(function checkEnv() {
+  if (location.protocol === 'file:') {
+    const banner = document.getElementById('regime-banner') || document.querySelector('.regime-banner');
+    const warn = document.createElement('div');
+    warn.style.cssText = 'background:rgba(224,92,92,0.15);border-bottom:1px solid rgba(224,92,92,0.4);padding:8px 28px;font-size:10px;color:#e05c5c;font-family:IBM Plex Mono,monospace;';
+    warn.innerHTML = '⚠ FILE:// PROTOCOL DETECTED — API calls will be CORS-blocked. Serve via web server: <code style="background:#1e2a3a;padding:2px 6px;">python3 -m http.server 8080</code> then open <b>http://localhost:8080</b>';
+    document.body.insertBefore(warn, document.querySelector('.regime-banner'));
+  }
+})();
+
+// ─── TAB SWITCH ──────────────────────────────────────────────────
+function switchTab(bucket) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelector(`.tab[data-bucket="${bucket}"]`).classList.add('active');
+  document.getElementById(`panel-${bucket}`).classList.add('active');
+
+  // Re-render to fix canvas sizing
+  if (state.loaded) setTimeout(() => renderBucket(bucket), 60);
+}
+
+// ─── TIME TOGGLE ─────────────────────────────────────────────────
+function setTime(bucket, tf, btnEl) {
+  state.timeframe[bucket] = tf;
+  const toggle = document.getElementById(`toggle-${bucket}`);
+  toggle.querySelectorAll('.tt-btn').forEach(b=>b.classList.remove('active'));
+  btnEl.classList.add('active');
+  if (state.loaded) renderBucket(bucket);
+}
+</script>
+</body>
+</html>
